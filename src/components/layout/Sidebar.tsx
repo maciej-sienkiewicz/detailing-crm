@@ -1,6 +1,6 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import {
     FaCalendarAlt,
     FaCar,
@@ -14,22 +14,12 @@ import {
     FaSms,
     FaTabletAlt,
     FaTimes,
-    FaUsers
+    FaUsers,
+    FaTachometerAlt
 } from 'react-icons/fa';
 import UserProfileSection from './UserProfileSection';
 import { useCompanyLogoUrl } from '../../hooks/useCompanyLogo';
-import {FaRepeat} from "react-icons/fa6";
-
-const brandTheme = {
-    primary: 'var(--brand-primary, #2563eb)',
-    primaryLight: 'var(--brand-primary-light, #3b82f6)',
-    primaryDark: 'var(--brand-primary-dark, #1d4ed8)',
-    primaryGhost: 'var(--brand-primary-ghost, rgba(37, 99, 235, 0.1))',
-    accent: '#f8fafc',
-    neutral: '#64748b',
-    surface: '#ffffff',
-    surfaceAlt: '#f1f5f9'
-};
+import { FaRepeat } from "react-icons/fa6";
 
 interface MainMenuItem {
     id: string;
@@ -39,10 +29,18 @@ interface MainMenuItem {
     hasSubmenu: boolean;
     badge?: string;
     isNew?: boolean;
-    category: 'daily' | 'business' | 'admin';
+    category: 'main' | 'daily' | 'business' | 'admin';
 }
 
 const mainMenuItems: MainMenuItem[] = [
+    {
+        id: 'dashboard',
+        label: 'Dashboard',
+        icon: <FaTachometerAlt />,
+        path: '/dashboard',
+        hasSubmenu: false,
+        category: 'main'
+    },
     {
         id: 'calendar',
         label: 'Kalendarz',
@@ -61,7 +59,7 @@ const mainMenuItems: MainMenuItem[] = [
     },
     {
         id: 'recurring-events',
-        label: 'Cykliczne wydarzenia',
+        label: 'Cykliczne',
         icon: <FaRepeat />,
         path: '/recurring-events',
         hasSubmenu: false,
@@ -90,7 +88,7 @@ const mainMenuItems: MainMenuItem[] = [
         path: '/fleet',
         hasSubmenu: true,
         category: 'business',
-        badge: "Faza rozwoju"
+        badge: "Beta"
     },
     {
         id: 'finances',
@@ -131,7 +129,7 @@ const mainMenuItems: MainMenuItem[] = [
         path: '/sms',
         hasSubmenu: false,
         category: 'admin',
-        badge: "Faza rozwoju"
+        badge: "Beta"
     },
     {
         id: 'settings',
@@ -152,12 +150,12 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
-                                             isOpen,
-                                             toggleSidebar,
-                                             onMenuItemClick,
-                                             activeMenuItem,
-                                             isMobile
-                                         }) => {
+    isOpen,
+    toggleSidebar,
+    onMenuItemClick,
+    activeMenuItem,
+    isMobile
+}) => {
     const location = useLocation();
     const navigate = useNavigate();
 
@@ -178,6 +176,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         return false;
     };
 
+    const mainItems = mainMenuItems.filter(item => item.category === 'main');
     const dailyItems = mainMenuItems.filter(item => item.category === 'daily');
     const businessItems = mainMenuItems.filter(item => item.category === 'business');
     const adminItems = mainMenuItems.filter(item => item.category === 'admin');
@@ -190,16 +189,13 @@ const Sidebar: React.FC<SidebarProps> = ({
                         {logoLoading ? (
                             <LogoLoadingContainer>
                                 <LogoSpinner />
-                                <CompanyName style={{fontSize: '12px', color: '#64748b'}}>Ładowanie...</CompanyName>
                             </LogoLoadingContainer>
                         ) : logoUrl ? (
                             <CompanyLogoContainer>
                                 <CompanyLogo
                                     src={logoUrl}
                                     alt="Logo firmy"
-                                    onError={(e) => {
-                                        console.warn('Logo failed to load:', logoUrl);
-                                    }}
+                                    onError={() => {}}
                                 />
                             </CompanyLogoContainer>
                         ) : (
@@ -224,6 +220,28 @@ const Sidebar: React.FC<SidebarProps> = ({
 
                 <Navigation>
                     <NavSection>
+                        <MenuList>
+                            {mainItems.map(item => (
+                                <MenuItem
+                                    key={item.id}
+                                    onClick={() => handleMenuItemClick(item)}
+                                    $active={isItemActive(item)}
+                                    $hasSubmenu={item.hasSubmenu}
+                                >
+                                    <MenuItemContent>
+                                        <IconWrap $active={isItemActive(item)}>
+                                            {item.icon}
+                                        </IconWrap>
+                                        <Label $active={isItemActive(item)}>{item.label}</Label>
+                                    </MenuItemContent>
+                                </MenuItem>
+                            ))}
+                        </MenuList>
+                    </NavSection>
+
+                    <Divider />
+
+                    <NavSection>
                         <SectionHeader>Dziś</SectionHeader>
                         <MenuList>
                             {dailyItems.map(item => (
@@ -234,12 +252,11 @@ const Sidebar: React.FC<SidebarProps> = ({
                                     $hasSubmenu={item.hasSubmenu}
                                 >
                                     <MenuItemContent>
-                                        <IconContainer $active={isItemActive(item)}>
+                                        <IconWrap $active={isItemActive(item)}>
                                             {item.icon}
-                                        </IconContainer>
-                                        <Label>{item.label}</Label>
+                                        </IconWrap>
+                                        <Label $active={isItemActive(item)}>{item.label}</Label>
                                         {item.isNew && <NewBadge>Nowe</NewBadge>}
-                                        {item.badge && <ProgressBadge>{item.badge}</ProgressBadge>}
                                         {item.hasSubmenu && (
                                             <SubmenuArrow $expanded={item.id === activeMenuItem}>
                                                 <FaChevronRight />
@@ -262,11 +279,11 @@ const Sidebar: React.FC<SidebarProps> = ({
                                     $hasSubmenu={item.hasSubmenu}
                                 >
                                     <MenuItemContent>
-                                        <IconContainer $active={isItemActive(item)}>
+                                        <IconWrap $active={isItemActive(item)}>
                                             {item.icon}
-                                        </IconContainer>
-                                        <Label>{item.label}</Label>
-                                        {item.badge && <ProgressBadge>{item.badge}</ProgressBadge>}
+                                        </IconWrap>
+                                        <Label $active={isItemActive(item)}>{item.label}</Label>
+                                        {item.badge && <BetaBadge>{item.badge}</BetaBadge>}
                                         {item.hasSubmenu && (
                                             <SubmenuArrow $expanded={item.id === activeMenuItem}>
                                                 <FaChevronRight />
@@ -289,12 +306,12 @@ const Sidebar: React.FC<SidebarProps> = ({
                                     $hasSubmenu={item.hasSubmenu}
                                 >
                                     <MenuItemContent>
-                                        <IconContainer $active={isItemActive(item)}>
+                                        <IconWrap $active={isItemActive(item)}>
                                             {item.icon}
-                                        </IconContainer>
-                                        <Label>{item.label}</Label>
+                                        </IconWrap>
+                                        <Label $active={isItemActive(item)}>{item.label}</Label>
                                         {item.isNew && <NewBadge>Nowe</NewBadge>}
-                                        {item.badge && <ProgressBadge>{item.badge}</ProgressBadge>}
+                                        {item.badge && <BetaBadge>{item.badge}</BetaBadge>}
                                         {item.hasSubmenu && (
                                             <SubmenuArrow $expanded={item.id === activeMenuItem}>
                                                 <FaChevronRight />
@@ -310,7 +327,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 <SidebarFooter>
                     <StatusLine>
                         <StatusDot />
-                        <StatusText>Wszystko działa</StatusText>
+                        <StatusText>Online</StatusText>
                     </StatusLine>
                     <VersionInfo>v2.1.0</VersionInfo>
                 </SidebarFooter>
@@ -321,29 +338,54 @@ const Sidebar: React.FC<SidebarProps> = ({
     );
 };
 
+// ─── Animations ───────────────────────────────────────────────────────────────
+
+const pulse = keyframes`
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+`;
+
+// ─── Colors ───────────────────────────────────────────────────────────────────
+
+const C = {
+    bg: '#0f1623',
+    bgHover: '#1a2335',
+    activeBg: 'rgba(99, 102, 241, 0.14)',
+    activeGlow: 'rgba(99, 102, 241, 0.25)',
+    accent: '#818cf8',
+    accentBright: '#a5b4fc',
+    textPrimary: '#f1f5f9',
+    textSecondary: '#94a3b8',
+    textMuted: '#4b5563',
+    border: 'rgba(255, 255, 255, 0.06)',
+    divider: 'rgba(255, 255, 255, 0.05)',
+    logoGradStart: '#6366f1',
+    logoGradEnd: '#8b5cf6',
+};
+
+// ─── Styled Components ────────────────────────────────────────────────────────
+
 const SidebarContainer = styled.div<{ isOpen: boolean; isMobile: boolean }>`
     position: fixed;
     top: 0;
     left: 0;
     height: 100vh;
-    width: 220px;
-    background: ${brandTheme.surface};
-    border-right: 1px solid #e8ecef;
+    width: 240px;
+    background: ${C.bg};
+    border-right: 1px solid ${C.border};
     z-index: 1000;
     display: flex;
     flex-direction: column;
     transform: translateX(${({ isOpen }) => isOpen ? '0' : '-100%'});
-    transition: transform 0.3s ease;
-    box-shadow: ${({ isOpen }) => isOpen ? '0 0 20px rgba(0,0,0,0.1)' : 'none'};
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: ${({ isOpen }) => isOpen ? '4px 0 24px rgba(0,0,0,0.35)' : 'none'};
 `;
 
 const Overlay = styled.div`
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(2px);
     z-index: 999;
 `;
 
@@ -351,9 +393,9 @@ const SidebarHeader = styled.div`
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px;
-    border-bottom: 1px solid #e8ecef;
-    min-height: 81px;
+    padding: 18px 16px 16px;
+    border-bottom: 1px solid ${C.border};
+    min-height: 72px;
 `;
 
 const LogoContainer = styled.div`
@@ -367,26 +409,25 @@ const LogoContainer = styled.div`
 const CompanyLogoContainer = styled.div`
     display: flex;
     align-items: center;
-    justify-content: center;
     width: 100%;
-    padding: 6px;
+    padding: 2px 0;
 `;
 
 const CompanyLogo = styled.img`
-    max-width: 160px;
-    max-height: 32px;
+    max-width: 150px;
+    max-height: 34px;
     width: auto;
     height: auto;
     object-fit: contain;
     border-radius: 4px;
+    filter: brightness(0) invert(1);
+    opacity: 0.92;
 `;
 
 const LogoLoadingContainer = styled.div`
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 6px;
     width: 100%;
     padding: 6px;
 `;
@@ -394,10 +435,10 @@ const LogoLoadingContainer = styled.div`
 const LogoSpinner = styled.div`
     width: 20px;
     height: 20px;
-    border: 2px solid #e2e8f0;
-    border-top: 2px solid #2563eb;
+    border: 2px solid ${C.border};
+    border-top: 2px solid ${C.accent};
     border-radius: 50%;
-    animation: spin 1s linear infinite;
+    animation: spin 0.9s linear infinite;
 
     @keyframes spin {
         0% { transform: rotate(0deg); }
@@ -406,16 +447,17 @@ const LogoSpinner = styled.div`
 `;
 
 const LogoIcon = styled.div`
-    width: 32px;
-    height: 32px;
-    background: ${brandTheme.primary};
-    border-radius: 6px;
+    width: 34px;
+    height: 34px;
+    background: linear-gradient(135deg, ${C.logoGradStart}, ${C.logoGradEnd});
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
     font-size: 16px;
     flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
 `;
 
 const LogoText = styled.div`
@@ -424,9 +466,9 @@ const LogoText = styled.div`
 `;
 
 const CompanyName = styled.div`
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 700;
-    color: #1e293b;
+    color: ${C.textPrimary};
     letter-spacing: -0.3px;
 `;
 
@@ -434,88 +476,74 @@ const CloseButton = styled.button`
     width: 28px;
     height: 28px;
     border: none;
-    background: none;
-    color: ${brandTheme.neutral};
+    background: ${C.bgHover};
+    color: ${C.textSecondary};
     cursor: pointer;
     border-radius: 6px;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s;
+    transition: all 0.15s;
     flex-shrink: 0;
-    font-size: 14px;
+    font-size: 13px;
 
     &:hover {
-        background: #f1f5f9;
-        color: #1e293b;
+        background: rgba(255,255,255,0.1);
+        color: ${C.textPrimary};
     }
 `;
 
 const Navigation = styled.nav`
     flex: 1;
     overflow-y: auto;
-    padding: 12px 0;
+    padding: 10px 0 8px;
 
-    &::-webkit-scrollbar {
-        width: 4px;
-    }
-    &::-webkit-scrollbar-track {
-        background: transparent;
-    }
+    &::-webkit-scrollbar { width: 3px; }
+    &::-webkit-scrollbar-track { background: transparent; }
     &::-webkit-scrollbar-thumb {
-        background: #e2e8f0;
+        background: rgba(255,255,255,0.1);
         border-radius: 2px;
     }
 `;
 
 const NavSection = styled.div`
-    margin-bottom: 24px;
+    margin-bottom: 4px;
+`;
 
-    &:last-child {
-        margin-bottom: 12px;
-    }
+const Divider = styled.div`
+    height: 1px;
+    background: ${C.divider};
+    margin: 4px 16px 12px;
 `;
 
 const SectionHeader = styled.div`
     font-size: 10px;
     font-weight: 600;
-    color: ${brandTheme.neutral};
+    color: ${C.textMuted};
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin: 0 16px 8px;
+    letter-spacing: 0.8px;
+    margin: 0 16px 4px;
+    padding-top: 8px;
 `;
 
 const MenuList = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 2px;
-    padding: 0 10px;
+    gap: 1px;
+    padding: 0 8px;
 `;
 
 const MenuItem = styled.div<{ $active: boolean; $hasSubmenu: boolean }>`
     cursor: pointer;
-    border-radius: 6px;
-    transition: all 0.2s ease;
+    border-radius: 8px;
+    transition: background 0.15s ease, box-shadow 0.15s ease;
     position: relative;
 
-    ${({ $active }) => $active && `
-        background: ${brandTheme.primaryGhost};
-        
-        &::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 3px;
-            height: 16px;
-            background: ${brandTheme.primary};
-            border-radius: 0 2px 2px 0;
-        }
-    `}
+    background: ${({ $active }) => $active ? C.activeBg : 'transparent'};
+    box-shadow: ${({ $active }) => $active ? `0 0 0 1px rgba(99,102,241,0.2), inset 0 0 20px ${C.activeGlow}` : 'none'};
 
-    &:hover:not([data-active="true"]) {
-        background: ${brandTheme.surfaceAlt};
+    &:hover {
+        background: ${({ $active }) => $active ? C.activeBg : C.bgHover};
     }
 `;
 
@@ -523,61 +551,67 @@ const MenuItemContent = styled.div`
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 10px 12px;
+    padding: 9px 10px;
     min-height: 38px;
 `;
 
-const IconContainer = styled.div<{ $active: boolean }>`
-    width: 16px;
-    height: 16px;
+const IconWrap = styled.div<{ $active: boolean }>`
+    width: 18px;
+    height: 18px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: ${({ $active }) => $active ? brandTheme.primary : brandTheme.neutral};
-    font-size: 14px;
-    transition: color 0.2s;
+    font-size: 13px;
+    flex-shrink: 0;
+    color: ${({ $active }) => $active ? C.accentBright : C.textSecondary};
+    transition: color 0.15s;
 
     ${MenuItem}:hover & {
-        color: ${brandTheme.primary};
+        color: ${({ $active }) => $active ? C.accentBright : C.textPrimary};
     }
 `;
 
-const Label = styled.span`
+const Label = styled.span<{ $active: boolean }>`
     font-size: 13px;
-    font-weight: 500;
-    color: #334155;
+    font-weight: ${({ $active }) => $active ? '600' : '400'};
+    color: ${({ $active }) => $active ? C.textPrimary : C.textSecondary};
     flex: 1;
+    transition: color 0.15s;
+
+    ${MenuItem}:hover & {
+        color: ${C.textPrimary};
+    }
 `;
 
 const NewBadge = styled.span`
     background: linear-gradient(135deg, #10b981, #059669);
     color: white;
     font-size: 9px;
-    font-weight: 600;
-    padding: 2px 5px;
-    border-radius: 3px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 20px;
     text-transform: uppercase;
-    letter-spacing: 0.3px;
+    letter-spacing: 0.4px;
 `;
 
-const ProgressBadge = styled.span`
-    background: #d3e1da;
-    color: white;
+const BetaBadge = styled.span`
+    background: rgba(99, 102, 241, 0.2);
+    color: ${C.accent};
     font-size: 9px;
     font-weight: 600;
-    padding: 2px 5px;
-    border-radius: 3px;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
+    padding: 2px 6px;
+    border-radius: 20px;
+    letter-spacing: 0.2px;
+    border: 1px solid rgba(99, 102, 241, 0.3);
 `;
 
 const SubmenuArrow = styled.div<{ $expanded: boolean }>`
-    width: 14px;
-    height: 14px;
+    width: 12px;
+    height: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: ${brandTheme.neutral};
+    color: ${C.textMuted};
     font-size: 9px;
     transform: rotate(${({ $expanded }) => $expanded ? '90deg' : '0deg'});
     transition: transform 0.2s;
@@ -585,7 +619,7 @@ const SubmenuArrow = styled.div<{ $expanded: boolean }>`
 
 const SidebarFooter = styled.div`
     padding: 12px 16px;
-    border-top: 1px solid #e8ecef;
+    border-top: 1px solid ${C.border};
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -598,20 +632,22 @@ const StatusLine = styled.div`
 `;
 
 const StatusDot = styled.div`
-    width: 5px;
-    height: 5px;
+    width: 6px;
+    height: 6px;
     background: #10b981;
     border-radius: 50%;
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+    animation: ${pulse} 2.5s ease-in-out infinite;
 `;
 
 const StatusText = styled.span`
     font-size: 11px;
-    color: ${brandTheme.neutral};
+    color: ${C.textMuted};
 `;
 
 const VersionInfo = styled.span`
     font-size: 10px;
-    color: #94a3b8;
+    color: ${C.textMuted};
     font-weight: 500;
 `;
 

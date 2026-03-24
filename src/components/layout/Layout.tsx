@@ -89,7 +89,7 @@ const LayoutContainer = styled.div`
     display: flex;
     min-height: 100vh;
     position: relative;
-    background: #fafbfc;
+    background: #f8fafc;
 `;
 
 const HamburgerButton = styled.button`
@@ -131,8 +131,8 @@ const MainContent = styled.main<{ sidebarOpen: boolean, hasSecondaryMenu: boolea
     flex: 1;
     margin-left: ${({ sidebarOpen, hasSecondaryMenu, isMobile }) => {
         if (isMobile) return '0';
-        if (sidebarOpen && hasSecondaryMenu) return '420px';
-        if (sidebarOpen) return '220px';
+        if (sidebarOpen && hasSecondaryMenu) return '440px';
+        if (sidebarOpen) return '240px';
         return '0';
     }};
     transition: margin-left 0.3s ease-in-out;

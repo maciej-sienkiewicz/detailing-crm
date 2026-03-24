@@ -28,6 +28,7 @@ import SettingsPageWithTabs from './pages/Settings/SettingsPageWithTabs';
 import ClientsVehiclesPage from './pages/Clients/ClientsVehiclesPage';
 import VehicleDetailPage from "./pages/Clients/components/VehicleDetailPage/VehicleDetailPage";
 import ClientDetailPage from "./pages/Clients/components/ClientDetailPage/ClientDetailPage";
+import DashboardPage from "./pages/Dashboard/DashboardPage";
 
 // Toast Provider import
 import { ToastProvider } from './components/common/Toast/Toast';
@@ -82,7 +83,8 @@ const AppRoutes: React.FC = () => {
                 <Route path="/welcome" element={<OnboardingPage />} />
 
                 <Route element={<ProtectedRoute />}>
-                    <Route path="/" element={<Navigate to="/calendar" replace />} />
+                    <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                    <Route path="/dashboard" element={<DashboardPage />} />
 
                     {/* Calendar Routes */}
                     <Route path="/calendar" element={<CalendarPage />} />

@@ -1,17 +1,18 @@
-import React, {useEffect, useRef, useState} from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
-import {FaChevronDown, FaSignOutAlt} from 'react-icons/fa';
-import {useAuth} from '../../context/AuthContext';
-import {useNavigate} from 'react-router-dom';
+import { FaChevronDown, FaSignOutAlt } from 'react-icons/fa';
+import { useAuth } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
-const brandTheme = {
-    primary: 'var(--brand-primary, #2563eb)',
-    primaryLight: 'var(--brand-primary-light, #3b82f6)',
-    primaryGhost: 'var(--brand-primary-ghost, rgba(37, 99, 235, 0.1))',
-    surface: '#ffffff',
-    surfaceAlt: '#f8fafc',
-    neutral: '#64748b',
-    border: '#e8ecef'
+const C = {
+    bg: '#0f1623',
+    bgHover: '#1a2335',
+    textPrimary: '#f1f5f9',
+    textSecondary: '#94a3b8',
+    textMuted: '#4b5563',
+    border: 'rgba(255, 255, 255, 0.06)',
+    menuBg: '#1a2335',
+    menuBorder: 'rgba(255, 255, 255, 0.1)',
 };
 
 const UserProfileSection: React.FC = () => {
@@ -28,9 +29,7 @@ const UserProfileSection: React.FC = () => {
         };
 
         document.addEventListener('mousedown', handleClickOutside);
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
+        return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
     const getInitials = () => {
@@ -39,10 +38,10 @@ const UserProfileSection: React.FC = () => {
     };
 
     const getUserColor = () => {
-        if (!user) return brandTheme.primary;
+        if (!user) return '#6366f1';
 
         const colors = [
-            '#3b82f6', '#10b981', '#f59e0b', '#ef4444',
+            '#6366f1', '#10b981', '#f59e0b', '#ef4444',
             '#8b5cf6', '#06b6d4', '#84cc16', '#f97316'
         ];
 
@@ -118,8 +117,9 @@ const UserProfileSection: React.FC = () => {
 
 const ProfileContainer = styled.div`
     position: relative;
-    padding: 12px 16px;
-    border-bottom: 1px solid ${brandTheme.border};
+    padding: 10px 8px;
+    border-bottom: 1px solid ${C.border};
+    margin: 0 0 4px;
 `;
 
 const ProfileTrigger = styled.div<{ $isOpen: boolean }>`
@@ -127,16 +127,13 @@ const ProfileTrigger = styled.div<{ $isOpen: boolean }>`
     align-items: center;
     gap: 10px;
     cursor: pointer;
-    padding: 6px;
-    border-radius: 6px;
-    transition: all 0.2s ease;
-
-    ${({ $isOpen }) => $isOpen && `
-        background: ${brandTheme.surfaceAlt};
-    `}
+    padding: 8px 8px;
+    border-radius: 8px;
+    transition: background 0.15s ease;
+    background: ${({ $isOpen }) => $isOpen ? C.bgHover : 'transparent'};
 
     &:hover {
-        background: ${brandTheme.surfaceAlt};
+        background: ${C.bgHover};
     }
 `;
 
@@ -150,7 +147,7 @@ const AvatarImage = styled.img`
     height: 32px;
     border-radius: 50%;
     object-fit: cover;
-    border: 2px solid ${brandTheme.border};
+    border: 2px solid rgba(255,255,255,0.1);
 `;
 
 const AvatarInitials = styled.div<{ $color: string }>`
@@ -162,19 +159,19 @@ const AvatarInitials = styled.div<{ $color: string }>`
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: 600;
-    font-size: 12px;
-    border: 2px solid ${brandTheme.border};
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.5px;
 `;
 
 const OnlineStatus = styled.div`
     position: absolute;
     bottom: 0;
     right: 0;
-    width: 8px;
-    height: 8px;
+    width: 9px;
+    height: 9px;
     background: #10b981;
-    border: 2px solid white;
+    border: 2px solid ${C.bg};
     border-radius: 50%;
 `;
 
@@ -185,8 +182,8 @@ const UserInfo = styled.div`
 
 const UserName = styled.div`
     font-size: 12px;
-    font-weight: 500;
-    color: #1e293b;
+    font-weight: 600;
+    color: ${C.textPrimary};
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -194,8 +191,8 @@ const UserName = styled.div`
 
 const UserRole = styled.div`
     font-size: 10px;
-    color: ${brandTheme.neutral};
-    margin-top: 2px;
+    color: ${C.textSecondary};
+    margin-top: 1px;
 `;
 
 const DropdownIcon = styled.div<{ $isOpen: boolean }>`
@@ -204,7 +201,7 @@ const DropdownIcon = styled.div<{ $isOpen: boolean }>`
     display: flex;
     align-items: center;
     justify-content: center;
-    color: ${brandTheme.neutral};
+    color: ${C.textMuted};
     font-size: 9px;
     transform: rotate(${({ $isOpen }) => $isOpen ? '180deg' : '0deg'});
     transition: transform 0.2s;
@@ -212,13 +209,13 @@ const DropdownIcon = styled.div<{ $isOpen: boolean }>`
 
 const DropdownMenu = styled.div`
     position: absolute;
-    top: calc(100% + 6px);
-    left: 16px;
-    right: 16px;
-    background: white;
-    border: 1px solid ${brandTheme.border};
-    border-radius: 6px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    top: calc(100% + 4px);
+    left: 8px;
+    right: 8px;
+    background: ${C.menuBg};
+    border: 1px solid ${C.menuBorder};
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0,0,0,0.3);
     z-index: 1000;
     overflow: hidden;
 `;
@@ -228,7 +225,7 @@ const MenuHeader = styled.div`
     align-items: center;
     gap: 10px;
     padding: 12px;
-    background: ${brandTheme.surfaceAlt};
+    background: rgba(255,255,255,0.03);
 `;
 
 const HeaderAvatar = styled.div`
@@ -249,8 +246,8 @@ const HeaderInitials = styled.div<{ $color: string }>`
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: 600;
-    font-size: 14px;
+    font-weight: 700;
+    font-size: 13px;
 `;
 
 const HeaderInfo = styled.div`
@@ -261,18 +258,21 @@ const HeaderInfo = styled.div`
 const HeaderName = styled.div`
     font-size: 12px;
     font-weight: 600;
-    color: #1e293b;
+    color: ${C.textPrimary};
 `;
 
 const HeaderEmail = styled.div`
     font-size: 10px;
-    color: ${brandTheme.neutral};
+    color: ${C.textSecondary};
     margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 `;
 
 const MenuDivider = styled.div`
     height: 1px;
-    background: ${brandTheme.border};
+    background: ${C.border};
 `;
 
 const MenuItem = styled.div<{ $isLogout?: boolean }>`
@@ -281,17 +281,12 @@ const MenuItem = styled.div<{ $isLogout?: boolean }>`
     gap: 10px;
     padding: 10px 12px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: background 0.15s;
 
     &:hover {
         background: ${({ $isLogout }) =>
-                $isLogout ? 'rgba(239, 68, 68, 0.1)' : brandTheme.surfaceAlt
-        };
+            $isLogout ? 'rgba(239, 68, 68, 0.1)' : 'rgba(255,255,255,0.05)'};
     }
-
-    ${({ $isLogout }) => $isLogout && `
-        color: #dc2626;
-    `}
 `;
 
 const MenuItemIcon = styled.div`
@@ -301,13 +296,13 @@ const MenuItemIcon = styled.div`
     align-items: center;
     justify-content: center;
     font-size: 12px;
-    color: ${brandTheme.neutral};
+    color: #ef4444;
 `;
 
 const MenuItemText = styled.span`
     font-size: 12px;
     font-weight: 500;
-    color: #374151;
+    color: #ef4444;
     flex: 1;
 `;
 

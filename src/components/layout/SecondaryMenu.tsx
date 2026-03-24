@@ -5,13 +5,12 @@ import {FaArchive, FaCalendarAlt} from 'react-icons/fa';
 import {FaCarRear} from "react-icons/fa6";
 
 const brandTheme = {
-    primary: 'var(--brand-primary, #2563eb)',
-    primaryLight: 'var(--brand-primary-light, #3b82f6)',
-    primaryGhost: 'var(--brand-primary-ghost, rgba(37, 99, 235, 0.08))',
-    surface: '#ffffff',
-    surfaceAlt: '#f8fafc',
-    neutral: '#64748b',
-    border: '#e2e8f0'
+    primary: '#818cf8',
+    primaryGhost: 'rgba(99, 102, 241, 0.14)',
+    surface: '#161d2e',
+    surfaceAlt: '#1a2335',
+    neutral: '#6b7280',
+    border: 'rgba(255,255,255,0.07)'
 };
 
 interface SecondaryMenuProps {
@@ -109,7 +108,7 @@ const getMenuTitle = (menuId: string): string => {
 const MenuContainer = styled.div<{ $show: boolean; $isMobile: boolean }>`
     position: fixed;
     top: 0;
-    left: ${({ $isMobile }) => $isMobile ? '0' : '220px'};
+    left: ${({ $isMobile }) => $isMobile ? '0' : '240px'};
     width: ${({ $isMobile }) => $isMobile ? '100%' : '200px'};
     height: 100vh;
     background: ${brandTheme.surface};
@@ -118,7 +117,7 @@ const MenuContainer = styled.div<{ $show: boolean; $isMobile: boolean }>`
     display: ${({ $show }) => $show ? 'flex' : 'none'};
     flex-direction: column;
     transform: ${({ $isMobile }) => $isMobile ? 'translateX(220px)' : 'none'};
-    box-shadow: 0 0 20px rgba(0,0,0,0.1);
+    box-shadow: 4px 0 20px rgba(0,0,0,0.3);
 `;
 
 const MenuHeader = styled.div`
@@ -130,7 +129,7 @@ const MenuHeader = styled.div`
 const HeaderTitle = styled.h3`
     font-size: 15px;
     font-weight: 600;
-    color: #1e293b;
+    color: #f1f5f9;
     margin: 0 0 3px 0;
 `;
 
@@ -160,11 +159,11 @@ const MenuItem = styled(Link)<{ $active: boolean }>`
 
     ${({ $active }) => $active ? `
         background: ${brandTheme.primaryGhost};
-        border-color: rgba(37, 99, 235, 0.2);
+        border-color: rgba(99, 102, 241, 0.25);
     ` : `
         &:hover {
-            background: ${brandTheme.surfaceAlt};
-            border-color: ${brandTheme.border};
+            background: rgba(255,255,255,0.05);
+            border-color: rgba(255,255,255,0.1);
         }
     `}
 `;
@@ -196,7 +195,7 @@ const ItemContent = styled.div`
 const ItemLabel = styled.div`
     font-size: 12px;
     font-weight: 500;
-    color: #334155;
+    color: #e2e8f0;
     margin-bottom: 2px;
 `;
 
