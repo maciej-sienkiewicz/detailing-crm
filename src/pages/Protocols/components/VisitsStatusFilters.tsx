@@ -3,7 +3,7 @@ import styled from 'styled-components';
 import {ProtocolStatus} from '../../../types';
 import {theme} from '../../../styles/theme';
 
-type StatusFilterType =  'reservations' | 'all' | ProtocolStatus;
+type StatusFilterType = 'reservations' | 'odrzucone-reservations' | 'all' | ProtocolStatus;
 
 interface StatusFilterConfig {
     label: string;
@@ -16,6 +16,11 @@ const statusConfig: Record<StatusFilterType, StatusFilterConfig> = {
         label: 'Rezerwacje',
         color: theme.info,
         lightColor: theme.infoBg
+    },
+    'odrzucone-reservations': {
+        label: 'Odrzucone',
+        color: '#1f2937',
+        lightColor: '#f3f4f6'
     },
     [ProtocolStatus.IN_PROGRESS]: {
         label: 'W realizacji',
@@ -59,6 +64,7 @@ export const VisitsStatusFilters: React.FC<VisitsStatusFiltersProps> = ({
                                                                         }) => {
     const filterOrder: StatusFilterType[] = [
         'reservations',
+        'odrzucone-reservations',
         ProtocolStatus.IN_PROGRESS,
         ProtocolStatus.READY_FOR_PICKUP,
         ProtocolStatus.COMPLETED,

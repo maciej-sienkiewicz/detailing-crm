@@ -124,43 +124,45 @@ export const ReservationsTable: React.FC<ReservationsTableProps> = ({
             case 'actions':
                 const menuItems: ContextMenuItem[] = [];
 
-                menuItems.push(
-                    {
-                        id: 'view',
-                        label: 'Podgląd',
-                        icon: FaEye,
-                        onClick: () => {
-                            if (onReservationClick) {
-                                onReservationClick(reservation);
-                            }
-                        },
-                        variant: 'primary'
-                    },
-                    {
-                        id: 'edit',
-                        label: 'Edytuj',
-                        icon: FaEdit,
-                        onClick: () => onEditReservation?.(reservation.id),
-                        variant: 'primary'
-                    },
-                    {
-                        id: 'start-visit',
-                        label: 'Rozpocznij wizytę',
-                        icon: FaArrowRight,
-                        onClick: () => onStartVisit(reservation),
-                        variant: 'primary'
-                    }
-                );
+                const isInactive = reservation.status === ReservationStatus.CANCELLED
+                    || reservation.status === ReservationStatus.ABANDONED;
 
-                // Show cancel only for non-cancelled reservations
-                if (reservation.status !== ReservationStatus.CANCELLED && reservation.status !== ReservationStatus.CONVERTED) {
-                    menuItems.push({
-                        id: 'cancel',
-                        label: 'Anuluj',
-                        icon: FaBan,
-                        onClick: () => onCancelReservation?.(reservation.id),
-                        variant: 'primary'
-                    });
+                menuItems.push({
+                    id: 'view',
+                    label: 'Podgląd',
+                    icon: FaEye,
+                    onClick: () => {
+                        if (onReservationClick) {
+                            onReservationClick(reservation);
+                        }
+                    },
+                    variant: 'primary'
+                });
+
+                if (!isInactive) {
+                    menuItems.push(
+                        {
+                            id: 'edit',
+                            label: 'Edytuj',
+                            icon: FaEdit,
+                            onClick: () => onEditReservation?.(reservation.id),
+                            variant: 'primary'
+                        },
+                        {
+                            id: 'start-visit',
+                            label: 'Rozpocznij wizytę',
+                            icon: FaArrowRight,
+                            onClick: () => onStartVisit(reservation),
+                            variant: 'primary'
+                        },
+                        {
+                            id: 'cancel',
+                            label: 'Anuluj',
+                            icon: FaBan,
+                            onClick: () => onCancelReservation?.(reservation.id),
+                            variant: 'primary'
+                        }
+                    );
                 }
 
                 menuItems.push({

@@ -25,7 +25,7 @@ import {ReservationsTable} from "../../features/reservations/components/Reservat
 import EditVisitForm from "../../features/visits/components/EditVisitForm/EditVisitForm";
 import {ConvertReservationToVisitForm} from "../../features/reservations/components/ConvertReservationForm/ConvertReservationToVisitForm";
 
-type StatusFilterType = 'reservations' | 'all' | ProtocolStatus;
+type StatusFilterType = 'reservations' | 'odrzucone-reservations' | 'all' | ProtocolStatus;
 
 interface AppData {
     services: ServiceOption[];
@@ -162,6 +162,7 @@ export const VisitsPageContainer: React.FC = () => {
             const result = await reservationsApi.listReservations({
                 page,
                 size,
+                status: ReservationStatus.CONFIRMED,
                 sortBy: 'startDate',
                 sortDirection: 'ASC'
             });
@@ -181,11 +182,57 @@ export const VisitsPageContainer: React.FC = () => {
         }
     }, []);
 
+    const loadInactiveReservations = useCallback(async (page: number = 0, size: number = 10) => {
+        setReservationsLoading(true);
+        try {
+            const [cancelledResult, abandonedResult] = await Promise.all([
+                reservationsApi.listReservations({
+                    status: ReservationStatus.CANCELLED,
+                    page: 0,
+                    size: 500,
+                    sortBy: 'startDate',
+                    sortDirection: 'DESC'
+                }),
+                reservationsApi.listReservations({
+                    status: ReservationStatus.ABANDONED,
+                    page: 0,
+                    size: 500,
+                    sortBy: 'startDate',
+                    sortDirection: 'DESC'
+                })
+            ]);
+
+            const combined = [
+                ...cancelledResult.data,
+                ...abandonedResult.data
+            ].sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
+
+            const start = page * size;
+            const paginated = combined.slice(start, start + size);
+            const totalItems = combined.length;
+
+            setReservations(paginated);
+            setReservationsPagination({
+                page,
+                size,
+                totalPages: Math.ceil(totalItems / size),
+                totalItems
+            });
+        } catch (error) {
+            console.error('Error loading inactive reservations:', error);
+            setReservations([]);
+        } finally {
+            setReservationsLoading(false);
+        }
+    }, []);
+
     const performSearch = useCallback(async () => {
         const searchFilters = getApiFilters();
 
         if (activeStatusFilter === 'reservations') {
             await loadReservations(0, pagination.size || 10);
+        } else if (activeStatusFilter === 'odrzucone-reservations') {
+            await loadInactiveReservations(0, pagination.size || 10);
         } else if (activeStatusFilter !== 'all') {
             searchFilters.status = activeStatusFilter;
             await searchVisits(searchFilters, {
@@ -198,7 +245,7 @@ export const VisitsPageContainer: React.FC = () => {
                 size: pagination.size || 10
             });
         }
-    }, [activeStatusFilter, getApiFilters, searchVisits, loadReservations, pagination.size]);
+    }, [activeStatusFilter, getApiFilters, searchVisits, loadReservations, loadInactiveReservations, pagination.size]);
 
     const handleFiltersChange = useCallback((newFilters: Partial<typeof filters>) => {
         updateFilters(newFilters);
@@ -218,6 +265,8 @@ export const VisitsPageContainer: React.FC = () => {
 
         if (status === 'reservations') {
             await loadReservations(0, pagination.size || 10);
+        } else if (status === 'odrzucone-reservations') {
+            await loadInactiveReservations(0, pagination.size || 10);
         } else {
             const searchFilters = getApiFilters();
             if (status !== 'all') {
@@ -229,7 +278,7 @@ export const VisitsPageContainer: React.FC = () => {
                 size: pagination.size || 10
             });
         }
-    }, [activeStatusFilter, getApiFilters, searchVisits, loadReservations, pagination.size]);
+    }, [activeStatusFilter, getApiFilters, searchVisits, loadReservations, loadInactiveReservations, pagination.size]);
 
     const handleClearAllFilters = useCallback(async () => {
         clearAllFilters();
@@ -242,6 +291,8 @@ export const VisitsPageContainer: React.FC = () => {
     const handlePageChange = useCallback(async (page: number) => {
         if (activeStatusFilter === 'reservations') {
             await loadReservations(page - 1, reservationsPagination.size);
+        } else if (activeStatusFilter === 'odrzucone-reservations') {
+            await loadInactiveReservations(page - 1, reservationsPagination.size);
         } else {
             const searchFilters = getApiFilters();
             if (activeStatusFilter !== 'all') {
@@ -253,7 +304,7 @@ export const VisitsPageContainer: React.FC = () => {
                 size: pagination.size
             });
         }
-    }, [activeStatusFilter, getApiFilters, searchVisits, loadReservations, pagination.size, reservationsPagination.size]);
+    }, [activeStatusFilter, getApiFilters, searchVisits, loadReservations, loadInactiveReservations, pagination.size, reservationsPagination.size]);
 
     const handleVisitClick = useCallback((visit: VisitListItem) => {
         if (activeStatusFilter === 'reservations') {
@@ -310,7 +361,7 @@ export const VisitsPageContainer: React.FC = () => {
     }, []);
 
     const handleDeleteVisit = useCallback(async (visitId: string) => {
-        if (activeStatusFilter === 'reservations') {
+        if (activeStatusFilter === 'reservations' || activeStatusFilter === 'odrzucone-reservations') {
             if (window.confirm('Czy na pewno chcesz usunąć tę rezerwację?')) {
                 await reservationsApi.deleteReservation(visitId);
                 await loadReservations(reservationsPagination.page, reservationsPagination.size);
@@ -576,11 +627,13 @@ export const VisitsPageContainer: React.FC = () => {
         </FiltersContainer>
     );
 
-    const currentPagination = activeStatusFilter === 'reservations'
+    const isReservationsMode = activeStatusFilter === 'reservations' || activeStatusFilter === 'odrzucone-reservations';
+
+    const currentPagination = isReservationsMode
         ? reservationsPagination
         : pagination;
 
-    const isLoading = activeStatusFilter === 'reservations' ? reservationsLoading : visitsLoading;
+    const isLoading = isReservationsMode ? reservationsLoading : visitsLoading;
 
     return (
         <PageContainer>
@@ -606,7 +659,7 @@ export const VisitsPageContainer: React.FC = () => {
                         </ErrorMessage>
                     )}
 
-                    {activeStatusFilter === 'reservations' ? (
+                    {isReservationsMode ? (
                         <ReservationsTable
                             reservations={reservations}
                             loading={reservationsLoading}
