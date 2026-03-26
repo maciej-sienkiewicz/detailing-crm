@@ -322,8 +322,11 @@ const AppointmentCalendar: React.FC<CalendarProps> = React.memo(({
                         }
 
                         if (appointment.status === 'CANCELLED') {
-                            info.el.style.setProperty('opacity', '0.8', 'important');
-                            if (isRecurring) {
+                            info.el.style.setProperty('opacity', '0.85', 'important');
+                            if ((appointment as any).isReservation) {
+                                // Black for cancelled/abandoned reservations
+                                info.el.style.setProperty('background', 'linear-gradient(135deg, #111111 0%, #2d2d2d 100%)', 'important');
+                            } else if (isRecurring) {
                                 info.el.style.setProperty('background', 'linear-gradient(135deg, #ef4444 0%, #f87171 100%)', 'important');
                             } else {
                                 info.el.style.setProperty('background', 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)', 'important');
@@ -917,6 +920,34 @@ const CalendarWrapper = styled.div`
         &:hover {
             transform: scale(1.05) translateY(-2px) !important;
             box-shadow: 0 6px 16px rgba(220, 38, 38, 0.4) !important;
+        }
+    }
+
+    .cancelled-reservation-event {
+        opacity: 0.85 !important;
+        background: linear-gradient(135deg, #111111 0%, #2d2d2d 100%) !important;
+        border: 1.5px solid #000000 !important;
+        color: white !important;
+        font-weight: 600 !important;
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35) !important;
+        position: relative;
+
+        &::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 8%;
+            right: 8%;
+            height: 1.5px;
+            background: rgba(255, 255, 255, 0.5);
+            transform: translateY(-50%);
+            z-index: 1;
+            border-radius: 1px;
+        }
+
+        &:hover {
+            transform: scale(1.05) translateY(-2px) !important;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5) !important;
         }
     }
 `;

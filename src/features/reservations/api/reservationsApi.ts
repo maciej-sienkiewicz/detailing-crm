@@ -18,7 +18,8 @@ import { PriceResponse, ServicePriceInput } from '../../../types/service';
 export enum ReservationStatus {
     CONFIRMED = 'CONFIRMED',
     CONVERTED = 'CONVERTED',
-    CANCELLED = 'CANCELLED'
+    CANCELLED = 'CANCELLED',
+    ABANDONED = 'ABANDONED'
 }
 
 /**

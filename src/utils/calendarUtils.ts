@@ -88,9 +88,6 @@ export const getRecurringEventColor = (event: Appointment): string => {
  * Get appropriate color for reservations
  */
 export const getReservationColor = (reservation: Appointment): string => {
-    if (reservation.status === AppointmentStatus.CANCELLED) {
-        return '#ef4444'; // Red for cancelled reservations
-    }
     return '#3b82f6'; // Blue for confirmed reservations
 };
 
@@ -103,6 +100,10 @@ export const getEventBackgroundColor = (
 ): string => {
     // Special handling for reservations
     if (isReservation(event)) {
+        // Cancelled and abandoned reservations always display as black
+        if (event.status === AppointmentStatus.CANCELLED) {
+            return '#1a1a1a';
+        }
         // Use calendar color if available, otherwise default reservation color
         if (event.calendarColorId && calendarColors[event.calendarColorId]) {
             return calendarColors[event.calendarColorId].color;
@@ -149,6 +150,10 @@ export const mapAppointmentsToFullCalendarEvents = (
         .filter(event => {
             // Handle reservations
             if (isReservation(event)) {
+                // Cancelled/abandoned reservations use the 'cancelled' filter
+                if (event.status === AppointmentStatus.CANCELLED) {
+                    return quickFilters.cancelled;
+                }
                 return quickFilters.scheduled;
             }
 
@@ -179,7 +184,9 @@ export const mapAppointmentsToFullCalendarEvents = (
             if (isReserv) classNames.push('reservation-event');
             if (isRecurr) classNames.push('recurring-event');
             if (event.status === AppointmentStatus.COMPLETED) classNames.push('completed-event');
-            if (event.status === AppointmentStatus.CANCELLED) classNames.push('cancelled-event');
+            if (event.status === AppointmentStatus.CANCELLED) {
+                classNames.push(isReserv ? 'cancelled-reservation-event' : 'cancelled-event');
+            }
 
             return {
                 id: event.id,
@@ -196,7 +203,7 @@ export const mapAppointmentsToFullCalendarEvents = (
                 borderColor: isRecurr
                     ? '#6b46c1'
                     : isReserv
-                        ? '#2563eb'
+                        ? (event.status === AppointmentStatus.CANCELLED ? '#000000' : '#2563eb')
                         : (event.isProtocol ? '#1a365d' : backgroundColor),
                 textColor: '#ffffff',
                 classNames: classNames.filter(Boolean)

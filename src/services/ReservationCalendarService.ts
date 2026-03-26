@@ -20,6 +20,7 @@ const convertReservationToAppointment = (reservation: Reservation): Appointment 
             appointmentStatus = AppointmentStatus.SCHEDULED;
             break;
         case ReservationStatus.CANCELLED:
+        case ReservationStatus.ABANDONED:
             appointmentStatus = AppointmentStatus.CANCELLED;
             break;
         case ReservationStatus.CONVERTED:
@@ -81,9 +82,8 @@ export const fetchReservationsAsAppointments = async (
             end: dateRange.end.toISOString()
         });
 
-        // Fetch all confirmed reservations
+        // Fetch all reservations (CONFIRMED, CANCELLED, ABANDONED) for calendar display
         const response = await reservationsApi.listReservations({
-            status: ReservationStatus.CONFIRMED,
             sortBy: 'startDate',
             sortDirection: 'ASC',
             size: 1000

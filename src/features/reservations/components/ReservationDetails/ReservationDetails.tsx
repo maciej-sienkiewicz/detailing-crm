@@ -16,7 +16,8 @@ import {
     FaExclamationCircle,
     FaBan,
     FaTimes,
-    FaClipboardCheck
+    FaClipboardCheck,
+    FaUserSlash
 } from 'react-icons/fa';
 import { Reservation, ReservationStatus } from '../../api/reservationsApi';
 import { format, parseISO } from 'date-fns';
@@ -67,6 +68,13 @@ export const ReservationDetails: React.FC<ReservationDetailsProps> = ({
                     color: theme.error,
                     bgColor: theme.errorBg,
                     icon: FaBan
+                };
+            case ReservationStatus.ABANDONED:
+                return {
+                    label: 'Porzucona',
+                    color: '#374151',
+                    bgColor: '#f3f4f6',
+                    icon: FaUserSlash
                 };
             default:
                 return {
